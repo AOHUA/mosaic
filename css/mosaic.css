@@ -60,7 +60,8 @@ body {
 }
 
 .upload-zone.active {
-  background: red;
+  background: hsl(0, 100%, 50%);
+  -webkit-animation: rainbow-background-animation 0.5s infinite alternate;
 }
 
 .file-input {
