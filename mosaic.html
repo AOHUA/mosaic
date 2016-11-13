@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="/css/mosaic.css" charset="utf-8" />
+    <link rel="stylesheet" href="/css/nyan-cat.css" charset="utf-8" />
+    <link rel="stylesheet" type="text/css"
+         href="https://fonts.googleapis.com/css?family=Amatic SC">
+    <script type="text/javascript" src="js/lib/class.js"></script>
+    <script src="https://use.fontawesome.com/4e2e29acb7.js"></script>
+    <title>Mosaic</title>
+  </head>
+  <body>
+    <header class="header">mosaic</header>
+    <div class="container">
+      <section class="image-container upload-image">
+        <div id="upload-zone" class="upload-zone">
+          <h2 id="instructions"><i class="fa fa-cloud-upload" aria-hidden="true"></i> Drop your image here ~</h2>
+          <input type="file" class="file-input" id="file-input" />
+          <img class="selected-img" id="selected-img" />
+        </div>
+      </section>
+      <section class="image-container canvas-container">
+        <div id="mosaic-container" class="mosaic-container">
+        </div>
+      </section>
+    </div>
+    <!-- copy and modified from Noel Delgado -->
+    <div id='nyan-cat' class='wrapper'>
+      <div class='rainbow'>
+        <span></span>
+      </div>
+      <div class='nyan-cat'>
+        <div class='feet'></div>
+        <div class='tail'>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class='body'></div>
+        <div class='head'></div>
+      </div>
+    </div>
+    <script type="text/javascript" src="js/mosaic.js"></script>
+    <script type="text/javascript" src="js/upload.js"></script>
+    <script type="text/javascript" src="js/client.js"></script>
+    <script id="tile-color-worker" type="javascript/worker">
+    /*
+    *  use inline worker to reduce requests.
+    */
+    "use strict";
+    self.addEventListener('message', function(e) {
+      var x = e.data.x;
+      var y = e.data.y;
+      var width = e.data.width;
+      var tileWidth = e.data.tileWidth;
+      var tileHeight = e.data.tileHeight;
+      var svgHost = e.data.svgHost;
+      var originalImageData = e.data.originalImageData;
+      var tileColorData = getTileColorData(x, y, width, originalImageData, tileHeight, tileWidth);
+      var color = getTileAverageColor(tileColorData);
+      getSvg(svgHost, color, y, self.postMessage);
+    });
+
+    // get rgb data from the original image for each tile.
+    function getTileColorData (x, y, width, originalImageData, tileHeight, tileWidth) {
+      var tileColorData = [];
+      for(var i = y; i < (y + tileWidth); i++) {
+        /*
+        * image data is a single dimensional array like [r, g, b, a, r, g, b, a].
+        * Need to times 4 to get the correct pixel data.
+        */
+        var pixelY = 4 * i;
+        for(var j = x; j < (x + tileHeight); j++) {
+          /*
+          * I'm getting the pixel data column by column. So pixelX has to times width also.
+          */
+          var pixelX = 4 * width * j;
+          tileColorData.push(
+            originalImageData.data[pixelX + pixelY + 0],
+            originalImageData.data[pixelX + pixelY + 1],
+            originalImageData.data[pixelX + pixelY + 2],
+            originalImageData.data[pixelX + pixelY + 3]
+          );
+        }
+        return tileColorData;
+      }
+    }
+    // get average tile color
+    function getTileAverageColor (tileColorData) {
+      var length = tileColorData.length;
+      // eache pixel has 4 values.
+      var numberOfPixel = length / 4;
+      var r = 0,
+          g = 0,
+          b = 0;
+
+      for(var i = 0; i < length; i += 4) {
+        r += tileColorData[i];
+        g += tileColorData[i+1];
+        b += tileColorData[i+2];
+      }
+
+      r = Math.floor(r / numberOfPixel);
+      g = Math.floor(g / numberOfPixel);
+      b = Math.floor(b / numberOfPixel);
+
+      return rgbToHex(r, g, b);
+    }
+
+    function componentToHex(c) {
+        var hex = c.toString(16);
+        return hex.length == 1 ? "0" + hex : hex;
+    }
+
+    function rgbToHex(r, g, b) {
+        return componentToHex(r) + componentToHex(g) + componentToHex(b);
+    }
+
+    // request for svg
+    function getSvg (svgHost, color, columnNumber, cb) {
+      return fetch(svgHost+color)
+      .then(
+        function(response) {
+          if (response.status !== 200) {
+            console.log('Request error. Status Code: ' +
+              response.status);
+            self.close();
+            return;
+          }
+          response.text().then(function(data) {
+            cb({data, columnNumber});
+            self.close();
+          });
+        }
+      )
+      .catch(function(err) {
+        console.log('Fetch Error :-S', err);
+      });
+    }
+    </script>
+  </body>
+</html>
