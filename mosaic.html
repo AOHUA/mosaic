@@ -49,6 +49,7 @@
     *  use inline worker to reduce requests.
     */
     "use strict";
+    var window = self;
     self.addEventListener('message', function(e) {
       var x = e.data.x;
       var y = e.data.y;
@@ -59,7 +60,22 @@
       var originalImageData = e.data.originalImageData;
       var tileColorData = getTileColorData(x, y, width, originalImageData, tileHeight, tileWidth);
       var color = getTileAverageColor(tileColorData);
-      getSvg(svgHost, color, y, self.postMessage);
+      getSvg(svgHost, color).then(
+        function(response) {
+          if (response.status !== 200) {
+            console.log('Request error. Status Code: ' +
+              response.status);
+            self.close();
+            return;
+          }
+          response.text().then(function(data) {
+            self.postMessage({data, columnNumber: y});
+            self.close();
+          });
+        }
+      ).catch(function(err) {
+        console.log('Fetch Error :-S', err);
+      });;
     });
 
     // get rgb data from the original image for each tile.
@@ -118,25 +134,12 @@
     }
 
     // request for svg
-    function getSvg (svgHost, color, columnNumber, cb) {
-      return fetch(svgHost+color)
-      .then(
-        function(response) {
-          if (response.status !== 200) {
-            console.log('Request error. Status Code: ' +
-              response.status);
-            self.close();
-            return;
-          }
-          response.text().then(function(data) {
-            cb({data, columnNumber});
-            self.close();
-          });
-        }
-      )
-      .catch(function(err) {
-        console.log('Fetch Error :-S', err);
-      });
+    function getSvg (svgHost, color) {
+      var init = {
+        method: 'GET',
+        cache: 'force-cache'
+      };
+      return fetch(svgHost+color, init);
     }
     </script>
   </body>
