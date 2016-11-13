@@ -6,4 +6,4 @@ A simple application to convert image into photomosaic with canvas, web worker.
 [Demo](http://mosaic.pangolingnow.com)
 
 ## Screenshot
-![Mosaic]('./git/screenshot.png')
+![Mosaic](git/screenshot.png)
