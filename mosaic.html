@@ -42,40 +42,26 @@
       </div>
     </div>
     <script type="text/javascript" src="js/mosaic.js"></script>
+    <script type="text/javascript" src="js/workerPool.js"></script>
+    <script type="text/javascript" src="js/photomosaic.js"></script>
     <script type="text/javascript" src="js/upload.js"></script>
     <script type="text/javascript" src="js/client.js"></script>
-    <script id="tile-color-worker" type="javascript/worker">
+    <script id="average-color-worker" type="javascript/worker">
     /*
     *  use inline worker to reduce requests.
     */
     "use strict";
-    var window = self;
     self.addEventListener('message', function(e) {
       var x = e.data.x;
       var y = e.data.y;
       var width = e.data.width;
       var tileWidth = e.data.tileWidth;
       var tileHeight = e.data.tileHeight;
-      var svgHost = e.data.svgHost;
       var originalImageData = e.data.originalImageData;
       var tileColorData = getTileColorData(x, y, width, originalImageData, tileHeight, tileWidth);
       var color = getTileAverageColor(tileColorData);
-      getSvg(svgHost, color).then(
-        function(response) {
-          if (response.status !== 200) {
-            console.log('Request error. Status Code: ' +
-              response.status);
-            self.close();
-            return;
-          }
-          response.text().then(function(data) {
-            self.postMessage({data, columnNumber: y});
-            self.close();
-          });
-        }
-      ).catch(function(err) {
-        console.log('Fetch Error :-S', err);
-      });;
+      self.postMessage(color);
+      self.close();
     });
 
     // get rgb data from the original image for each tile.
@@ -132,14 +118,35 @@
     function rgbToHex(r, g, b) {
         return componentToHex(r) + componentToHex(g) + componentToHex(b);
     }
-
+    </script>
+    <script id="svg-worker" type="javascript/worker">
+    /*
+    *  use inline worker to reduce requests.
+    */
+    "use strict";
+    self.addEventListener('message', function(e) {
+      var svgHost = e.data.svgHost;
+      var color = e.data.color;
+      getSvg(svgHost, color).then(
+        function(response) {
+          if (response.status !== 200) {
+            console.log('Request error. Status Code: ' +
+              response.status);
+            self.close();
+            return;
+          }
+          response.text().then(function(data) {
+            self.postMessage(data);
+            self.close();
+          });
+        }
+      ).catch(function(err) {
+        console.log('Fetch Error :-S', err);
+      });
+    });
     // request for svg
     function getSvg (svgHost, color) {
-      var init = {
-        method: 'GET',
-        cache: 'force-cache'
-      };
-      return fetch(svgHost+color, init);
+      return fetch(svgHost+color);
     }
     </script>
   </body>
