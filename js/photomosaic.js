@@ -4,8 +4,8 @@
   // Mosaic settings
   var CONTAINER_WIDTH = 448;
   var CONTAINER_HEIGHT = 448;
-  var COLOR_WORKER_SIZE = 16;
-  var SVG_WORKER_SIZE = 10;
+  var COLOR_WORKER_SIZE = 10;
+  var SVG_WORKER_SIZE = 6;
 
   function Mosaic(image, svgHost) {
     var self = this;
