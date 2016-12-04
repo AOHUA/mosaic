@@ -18,7 +18,7 @@ var UploadZone = (function(UploadZonem, Mosaic) {
 
   function handleFileOnChange(e) {
     var reader = new FileReader();
-    var svgHost = 'http://' + window.location.host + '/color/';
+    var svgHost = 'https://' + window.location.host + '/color/';
     reader.onload = function (event) {
       uploadModule.instructions.style.display = 'none';
       uploadModule.selectedImg.src = event.target.result;
